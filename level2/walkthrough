@@ -69,7 +69,7 @@ level02@OverRide:~$ ./level02
 *****************************************
 0x756e505234376848 0x45414a3561733951 0x377a7143574e6758 0x354a35686e475873 0x48336750664b394d does not have access!
 
-# Now we have to clean it: remove 0x, translate it to ascii and then reverse it (because little endian)
+# Now we have to clean it: remove 0x, reverse it (little endian to big endian) then translate it to ascii
 
 # And finally we get the flag !
 
