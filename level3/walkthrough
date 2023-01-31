@@ -1,5 +1,12 @@
 Important :
 
+ 80488ca:	c7 44 24 04 0d d0 37 	movl   $0x1337d00d,0x4(%esp) # (gdb) p 0x1337d00d $4 = 322424845
+ 80488d1:	13
+ 80488d2:	89 04 24             	mov    %eax,(%esp)
+ 80488d5:	e8 6d fe ff ff       	call   8048747 <test>
+ 
+ 
+
 8048673:	c7 45 e3 51 7d 7c 75 	movl   $0x757c7d51,-0x1d(%ebp)
 804867a:	c7 45 e7 60 73 66 67 	movl   $0x67667360,-0x19(%ebp)
 8048681:	c7 45 eb 7e 73 66 7b 	movl   $0x7b66737e,-0x15(%ebp)
@@ -22,3 +29,63 @@ Breakpoint 1, 0x0804868f in decrypt ()
  80486fc:	89 d6                	mov    %edx,%esi
  80486fe:	89 c7                	mov    %eax,%edi
  8048700:	f3 a6                	repz cmpsb %es:(%edi),%ds:(%esi) # x /s $edi : "Congratulations!" | %esi = Our decripted string
+
+str = "Q}|u`sfg~sf{}|a3"
+for s in str:
+    print(chr(ord(s) ^ 18))
+C
+o
+n
+g
+r
+a
+t
+u
+l
+a
+t
+i
+o
+n
+s
+!
+
+804875c:	83 7d f4 15          	cmpl   $0x15,-0xc(%ebp) # If above 21 jump to 0x0804884a
+8048760:	0f 87 e4 00 00 00    	ja     804884a <test+0x103>
+
+ 804884a:	e8 d1 fc ff ff       	call   8048520 <rand@plt> # Will call decrypt with a rand key
+ 804884f:	89 04 24             	mov    %eax,(%esp)
+ 8048852:	e8 09 fe ff ff       	call   8048660 <decrypt>
+
+ 
+# If the code it say that if our key is not [1,9] or [16,21], it get a random key
+
+ 8048766:	8b 45 f4             	mov    -0xc(%ebp),%eax # Take key (18)
+ 8048769:	c1 e0 02             	shl    $0x2,%eax       # key << 2 (72)
+ 804876c:	05 f0 89 04 08       	add    $0x80489f0,%eax # key + 0x80489f0 (134515256)
+ 8048771:	8b 00                	mov    (%eax),%eax     # $eax = 134515256 && *$eax = 134514710 (hex(134514710) = 0x8048816
+ 8048773:	ff e0                	jmp    *%eax           # jump to 0x8048816
+ 
+ 8048816:	8b 45 f4             	mov    -0xc(%ebp),%eax
+ 8048819:	89 04 24             	mov    %eax,(%esp)
+ 804881c:	e8 3f fe ff ff       	call   8048660 <decrypt>
+ 
+ 
+ # This calcul is a switch case in disguised, when we test key by key < 21, we see that from 10 to 15 we jump to 0x0804884a
+ 804884a:	e8 d1 fc ff ff       	call   8048520 <rand@plt>
+ 804884f:	89 04 24             	mov    %eax,(%esp)
+ 8048852:	e8 09 fe ff ff       	call   8048660 <decrypt>
+
+# So we need to find 0x1337d00d - ? = 18 | ? = 322424827
+
+# We try it as the password
+
+level03@OverRide:~$ ./level03
+***********************************
+*		level03		**
+***********************************
+Password:322424827
+$ whoami
+level04
+$ cat /home/users/level04/.pass
+kgv3tkEb9h2mLkRsPkXRfc2mHbjMxQzvb2FrgKkf
