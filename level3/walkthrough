@@ -1,0 +1,24 @@
+Important :
+
+8048673:	c7 45 e3 51 7d 7c 75 	movl   $0x757c7d51,-0x1d(%ebp)
+804867a:	c7 45 e7 60 73 66 67 	movl   $0x67667360,-0x19(%ebp)
+8048681:	c7 45 eb 7e 73 66 7b 	movl   $0x7b66737e,-0x15(%ebp)
+8048688:	c7 45 ef 7d 7c 61 33 	movl   $0x33617c7d,-0x11(%ebp)
+804868f:	c6 45 f3 00          	movb   $0x0,-0xd(%ebp)
+8048693:	50                   	push   %eax
+
+Breakpoint 1, 0x0804868f in decrypt ()
+
+(gdb) x /s $ebp - 0x1d
+0xffffd66b:	 "Q}|u`sfg~sf{}|a3"
+
+80486b2:	f2 ae                	repnz scas %es:(%edi),%al # x /s $edi > 0xffffd66b:	 "Q}|u`sfg~sf{}|a3"
+
+
+ 80486ed:	8d 45 e3             	lea    -0x1d(%ebp),%eax
+ 80486f0:	89 c2                	mov    %eax,%edx
+ 80486f2:	b8 c3 89 04 08       	mov    $0x80489c3,%eax x /s 0x80489c3 > 0x80489c3:	 "Congratulations!"
+ 80486f7:	b9 11 00 00 00       	mov    $0x11,%ecx
+ 80486fc:	89 d6                	mov    %edx,%esi
+ 80486fe:	89 c7                	mov    %eax,%edi
+ 8048700:	f3 a6                	repz cmpsb %es:(%edi),%ds:(%esi) > x /s $edi : "Congratulations!" | 
