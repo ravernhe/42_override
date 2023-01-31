@@ -1,0 +1,23 @@
+level04@OverRide:~$ objdump -R level04
+
+level04:     file format elf32-i386
+
+DYNAMIC RELOCATION RECORDS
+OFFSET   TYPE              VALUE
+08049ff0 R_386_GLOB_DAT    __gmon_start__
+0804a040 R_386_COPY        stdout
+0804a000 R_386_JUMP_SLOT   fflush
+0804a004 R_386_JUMP_SLOT   gets
+0804a008 R_386_JUMP_SLOT   getchar
+0804a00c R_386_JUMP_SLOT   signal
+0804a010 R_386_JUMP_SLOT   alarm
+0804a014 R_386_JUMP_SLOT   wait
+0804a018 R_386_JUMP_SLOT   puts
+0804a01c R_386_JUMP_SLOT   __gmon_start__
+0804a020 R_386_JUMP_SLOT   kill
+0804a024 R_386_JUMP_SLOT   __libc_start_main
+0804a028 R_386_JUMP_SLOT   prctl
+0804a02c R_386_JUMP_SLOT   fork
+0804a030 R_386_JUMP_SLOT   __isoc99_scanf
+0804a034 R_386_JUMP_SLOT   ptrace
+
