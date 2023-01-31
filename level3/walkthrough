@@ -71,10 +71,19 @@ s
  804881c:	e8 3f fe ff ff       	call   8048660 <decrypt>
  
  
- # This calcul is a switch case in disguised, when we test key by key < 21, we see that from 10 to 15 we jump to 0x0804884a
+ # This calcul is a switch case , when we test key by key < 21, we see that from 10 to 15 we jump to 0x0804884a
  804884a:	e8 d1 fc ff ff       	call   8048520 <rand@plt>
  804884f:	89 04 24             	mov    %eax,(%esp)
  8048852:	e8 09 fe ff ff       	call   8048660 <decrypt>
+
+# We can take a look at the jump table like this and see our switch indirect jump
+(gdb) x/21w 0x80489f4
+0x80489f4:	0x08048775	0x08048785	0x08048795	0x080487a5
+0x8048a04:	0x080487b5	0x080487c5	0x080487d5	0x080487e2
+0x8048a14:	0x080487ef	0x0804884a	0x0804884a	0x0804884a
+0x8048a24:	0x0804884a	0x0804884a	0x0804884a	0x080487fc
+0x8048a34:	0x08048809	0x08048816	0x08048823	0x08048830
+0x8048a44:	0x0804883d
 
 # So we need to find 0x1337d00d - ? = 18 | ? = 322424827
 
