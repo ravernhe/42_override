@@ -17,8 +17,8 @@ Breakpoint 1, 0x0804868f in decrypt ()
 
  80486ed:	8d 45 e3             	lea    -0x1d(%ebp),%eax
  80486f0:	89 c2                	mov    %eax,%edx
- 80486f2:	b8 c3 89 04 08       	mov    $0x80489c3,%eax x /s 0x80489c3 > 0x80489c3:	 "Congratulations!"
+ 80486f2:	b8 c3 89 04 08       	mov    $0x80489c3,%eax # x /s 0x80489c3 > 0x80489c3:	 "Congratulations!"
  80486f7:	b9 11 00 00 00       	mov    $0x11,%ecx
  80486fc:	89 d6                	mov    %edx,%esi
  80486fe:	89 c7                	mov    %eax,%edi
- 8048700:	f3 a6                	repz cmpsb %es:(%edi),%ds:(%esi) > x /s $edi : "Congratulations!" | 
+ 8048700:	f3 a6                	repz cmpsb %es:(%edi),%ds:(%esi) # x /s $edi : "Congratulations!" | %esi = Our decripted string
