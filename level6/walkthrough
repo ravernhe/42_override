@@ -1,0 +1,33 @@
+level06:     file format elf32-i386
+
+DYNAMIC RELOCATION RECORDS
+OFFSET   TYPE              VALUE
+08049ff0 R_386_GLOB_DAT    __gmon_start__
+0804a060 R_386_COPY        stdin
+0804a080 R_386_COPY        stdout
+0804a000 R_386_JUMP_SLOT   printf
+0804a004 R_386_JUMP_SLOT   strcspn
+0804a008 R_386_JUMP_SLOT   fflush
+0804a00c R_386_JUMP_SLOT   getchar
+0804a010 R_386_JUMP_SLOT   fgets
+0804a014 R_386_JUMP_SLOT   signal
+0804a018 R_386_JUMP_SLOT   alarm
+0804a01c R_386_JUMP_SLOT   __stack_chk_fail
+0804a020 R_386_JUMP_SLOT   puts
+0804a024 R_386_JUMP_SLOT   system
+0804a028 R_386_JUMP_SLOT   __gmon_start__
+0804a02c R_386_JUMP_SLOT   __libc_start_main
+0804a030 R_386_JUMP_SLOT   strnlen
+0804a034 R_386_JUMP_SLOT   __isoc99_scanf
+0804a038 R_386_JUMP_SLOT   ptrace
+
+# We have an auth service,  we need to get auth or fake it to open a shell
+ 804894a:	c7 04 24 52 8b 04 08 	movl   $0x8048b52,(%esp)    # x/s 0x8048b52 : "Authenticated!"
+ 8048951:	e8 3a fc ff ff       	call   8048590 <puts@plt>
+ 8048956:	c7 04 24 61 8b 04 08 	movl   $0x8048b61,(%esp)    # x/s 0x8048b61 : "/bin/sh"
+ 804895d:	e8 3e fc ff ff       	call   80485a0 <system@plt>
+ 
+ # We have auth func
+ 8048941:	e8 02 fe ff ff       	call   8048748 <auth>
+ 8048946:	85 c0                	test   %eax,%eax
+ 8048948:	75 1f                	jne    8048969 <main+0xf0>
