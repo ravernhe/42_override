@@ -18,7 +18,7 @@ OFFSET           TYPE              VALUE
 0000000000202028 R_X86_64_JUMP_SLOT  fgets
 0000000000202030 R_X86_64_JUMP_SLOT  __cxa_finalize
 
-# In the disas, this seems a bit odd
+# In the disas, this seems a bit odd and btw it has been compiled on 64 bits that's why the adresse is not like we usally have
 
 000000000000088c <secret_backdoor>:
  88c:	55                   	push   %rbp
