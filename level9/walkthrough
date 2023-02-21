@@ -1,0 +1,59 @@
+level09:     file format elf64-x86-64
+
+DYNAMIC RELOCATION RECORDS
+OFFSET           TYPE              VALUE
+0000000000201fb0 R_X86_64_RELATIVE  *ABS*+0x0000000000000b60
+0000000000201fc8 R_X86_64_RELATIVE  *ABS*+0x0000000000000ad0
+0000000000201fd0 R_X86_64_RELATIVE  *ABS*+0x0000000000000aa8
+0000000000202040 R_X86_64_RELATIVE  *ABS*+0x0000000000202040
+0000000000201fb8 R_X86_64_GLOB_DAT  stdin
+0000000000201fc0 R_X86_64_GLOB_DAT  __gmon_start__
+0000000000201fd8 R_X86_64_GLOB_DAT  _Jv_RegisterClasses
+0000000000201fe0 R_X86_64_GLOB_DAT  __cxa_finalize
+0000000000202000 R_X86_64_JUMP_SLOT  strncpy
+0000000000202008 R_X86_64_JUMP_SLOT  puts
+0000000000202010 R_X86_64_JUMP_SLOT  system
+0000000000202018 R_X86_64_JUMP_SLOT  printf
+0000000000202020 R_X86_64_JUMP_SLOT  __libc_start_main
+0000000000202028 R_X86_64_JUMP_SLOT  fgets
+0000000000202030 R_X86_64_JUMP_SLOT  __cxa_finalize
+
+# In the disas, this seems a bit odd
+
+000000000000088c <secret_backdoor>:
+ 88c:	55                   	push   %rbp
+ 88d:	48 89 e5             	mov    %rsp,%rbp
+ 890:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp
+ 894:	48 8b 05 1d 17 20 00 	mov    0x20171d(%rip),%rax        # 201fb8 <_DYNAMIC+0x198>
+ 89b:	48 8b 00             	mov    (%rax),%rax
+ 89e:	48 89 c2             	mov    %rax,%rdx
+ 8a1:	48 8d 45 80          	lea    -0x80(%rbp),%rax
+ 8a5:	be 80 00 00 00       	mov    $0x80,%esi
+ 8aa:	48 89 c7             	mov    %rax,%rdi
+ 8ad:	e8 be fe ff ff       	callq  770 <fgets@plt>
+ 8b2:	48 8d 45 80          	lea    -0x80(%rbp),%rax
+ 8b6:	48 89 c7             	mov    %rax,%rdi
+ 8b9:	e8 82 fe ff ff       	callq  740 <system@plt>
+ 8be:	c9                   	leaveq
+ 8bf:	c3                   	retq
+ 
+ # Kowalski analysis 🫡
+ 
+ ./level09
+--------------------------------------------
+|   ~Welcome to l33t-m$n ~    v1337        |
+--------------------------------------------
+>: Enter your username
+>>: bob                       # Inputed
+>: Welcome, bob
+>: Msg @Unix-Dude
+>>: bob                       # Inputed
+>: Msg sent!
+ 
+ # Seems straightforward, overflow one of the 2 strings and override something with the secret backdoor function and get the flag
+ # So let's see how set_username and set_msg are built
+ 
+ 
+ 
+ 
+ 
