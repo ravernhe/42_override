@@ -167,6 +167,7 @@ Segmentation fault (core dumped)        # Segfault cause we override, main retur
 > _ / 4
 -9.0
 
+# When we check at array -9 we get accurate location in the stack
 # Ok we test run exploit, read [-9] during exec, then store the value in [114]
 
 ------/tmp/exploit------
