@@ -40,7 +40,7 @@ ERROR: Failed to open ./backups//home/users/level09/.pass
 # I can't use the arg to exploit this thing 😢
 
 # Thinking of it the path of ./backups is relative not absolute, so we can try to create a backups replica in /tmp
-# And since the file is copied with same path we create it so the prog as acces
+# And since the file is copied with same path we create it so the prog has acces
 mkdir -p /tmp/backups/home/users/level09/ 
 
 # Now we test again but from /tmp
