@@ -1,7 +1,3 @@
-level08@OverRide:~$ objdump -r level08
-
-level08:     file format elf64-x86-64
-
 level08@OverRide:~$ objdump -R level08
 
 level08:     file format elf64-x86-64
