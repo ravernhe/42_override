@@ -6,18 +6,7 @@ Password:test
 
 Invalid Password!
 
-# Read the disas
-
- 80484e7:	3d 9c 14 00 00       	cmp    $0x149c,%eax         # 0x149c = 5276
- 80484ec:	75 1f                	jne    804850d <main+0x79>
- 
- 804850d:	c7 04 24 51 86 04 08 	movl   $0x8048651,(%esp)
- 8048514:	e8 77 fe ff ff       	call   8048390 <puts@plt>
- 
- 80484ee:	c7 04 24 39 86 04 08 	movl   $0x8048639,(%esp) # 0x8048639:	 "\nAuthenticated!"
- 80484f5:	e8 96 fe ff ff       	call   8048390 <puts@plt>
- 80484fa:	c7 04 24 49 86 04 08 	movl   $0x8048649,(%esp) # 0x8048649:	 "/bin/sh"
- 8048501:	e8 9a fe ff ff       	call   80483a0 <system@plt>
+# RTFC ---> ghidra
  
 # Tada
 
