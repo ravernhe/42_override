@@ -10,6 +10,7 @@ void main(void)
   
   bVar4 = 0;
   i = 0;
+// fill buffer with 100 char max
   fgets((char *)buff,100,stdin);
   i = 0;
   do {
@@ -23,10 +24,10 @@ void main(void)
     } while (bVar1 != 0);
     if (~uVar2 - 1 <= i) {
       printf((char *)buff);
-                    /* WARNING: Subroutine does not return */
       exit(0);
     }
-  // XOR ^ 32 = xor && xor ^ 32 = XOR
+  // if char is Uppercase
+  // XOR ^ 32 = xor
     if (('@' < (char)buff[i]) && ((char)buff[i] < '[')) {
       buff[i] = buff[i] ^ 32;
     }
