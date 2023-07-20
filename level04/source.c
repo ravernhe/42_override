@@ -37,7 +37,7 @@ undefined4 main(void)
         puts("child is exiting...");
         return 0;
       }
-      // ptrace check on child and if receive a signal == 11 (aka SIGSEGV) kill 
+      // ptrace check on child and if receive a SIGTRAP (exec), kill the child
       local_18 = ptrace(PTRACE_PEEKUSER,pid,0x2c,0);
     } while (local_18 != 0xb);
     puts("no exec() for you");
