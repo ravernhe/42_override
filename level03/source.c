@@ -156,6 +156,7 @@ undefined4 main(void)
 
 {
   uint seed;
+  int user_input;
   
   seed = time((time_t *)0x0);
   srand(seed);
@@ -164,6 +165,6 @@ undefined4 main(void)
   puts("***********************************");
   printf("Password:");
   __isoc99_scanf();
-  test();
+  test(user_input,0x1337d00d);
   return 0;
 }
