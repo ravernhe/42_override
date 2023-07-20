@@ -3,35 +3,12 @@ Give me some shellcode, k
 aaaaaaaaaaaaaaa
 child is exiting...
 
- 80486d6:	e8 75 fe ff ff       	call   8048550 <fork@plt> --> We can see there that we create a child process
+We can see in the code that it create a child process, trace it with ptrace to prevent any execve inside it by killing the process before the execution of the execve command.
 
- 8048709:	83 bc 24 ac 00 00 00 	cmpl   $0x0,0xac(%esp) --> Here we separate the parent from the child process
- 8048710:	00 
- 8048711:	75 56                	jne    8048769 <main+0xa1> --> parent process jump way down
- 8048713:	c7 44 24 04 01 00 00 	movl   $0x1,0x4(%esp)
- 804871a:	00 
- 804871b:	c7 04 24 01 00 00 00 	movl   $0x1,(%esp)
- 8048722:	e8 19 fe ff ff       	call   8048540 <prctl@plt>
- 8048727:	c7 44 24 0c 00 00 00 	movl   $0x0,0xc(%esp)
- 804872e:	00 
- 804872f:	c7 44 24 08 00 00 00 	movl   $0x0,0x8(%esp)
- 8048736:	00 
- 8048737:	c7 44 24 04 00 00 00 	movl   $0x0,0x4(%esp)
- 804873e:	00 
- 804873f:	c7 04 24 00 00 00 00 	movl   $0x0,(%esp)
- 8048746:	e8 25 fe ff ff       	call   8048570 <ptrace@plt> --> Here (we are in the child process) we start a ptrace so we can't use exec without parent checking on us
- 804874b:	c7 04 24 03 89 04 08 	movl   $0x8048903,(%esp)
- 8048752:	e8 a9 fd ff ff       	call   8048500 <puts@plt>
- 8048757:	8d 44 24 20          	lea    0x20(%esp),%eax
- 804875b:	89 04 24             	mov    %eax,(%esp)
- 804875e:	e8 4d fd ff ff       	call   80484b0 <gets@plt> --> Unprotected
- 8048763:	e9 b2 00 00 00       	jmp    804881a <main+0x152> --> exit
- 8048768:	90                   	nop
- 8048769:	8d 44 24 1c          	lea    0x1c(%esp),%eax --> Parent destination
- 804876d:	89 04 24             	mov    %eax,(%esp)
- 8048770:	e8 7b fd ff ff       	call   80484f0 <wait@plt>
+RTFM --> All successful calls to execve(2) by the traced process will cause it to be sent a SIGTRAP signal, giving the parent a chance to gain control before the new program begins execution.
 
-Ok we can see that we have an unprotected gets in the child process, let's check eip offset
+Also we can see that we have an unprotected gets in the child process, let's check eip offset.
+
 
 We use : > (gdb) set follow-fork-mode child # to follow the child process instead of the parent
 
@@ -48,6 +25,7 @@ Program received signal SIGSEGV, Segmentation fault.
 0x41326641 in ?? ()
 
 We have an offset of 156 !
+
 
 It's easy, we just have to put our shellcode in a env var, and send a padding of 156 + the address of our buffer and it should work ! 
 Buuuuuuut, the child is watched by ptrace so an exec in our shellcode will not worked and be stopped by the parent, we need to use an other thing
