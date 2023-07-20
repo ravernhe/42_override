@@ -7,6 +7,9 @@ diff = param_2 - param_1
 # in decrypt
 *(byte *)((int)&s1 + plus) = (byte)diff ^ *(byte *)((int)&s1 + plus);
 
+In code we find that our XOR string ("Q}|u`sfg~sf{}|a3") is compared with the string "Congratulations!"
+We can find the XOR key with Cyberchef, or decode 
+
 str = "Q}|u`sfg~sf{}|a3"
 for s in str:
     print(chr(ord(s) ^ 18))
