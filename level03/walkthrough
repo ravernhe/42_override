@@ -1,3 +1,6 @@
+RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
+Partial RELRO   Canary found      NX enabled    No PIE          No RPATH   No RUNPATH   /home/users/level03/level03
+
 Important :
 
  80488ca:	c7 44 24 04 0d d0 37 	movl   $0x1337d00d,0x4(%esp) # (gdb) p 0x1337d00d $4 = 322424845
