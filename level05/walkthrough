@@ -22,6 +22,9 @@ int main(int argc, char *argv[]) {
 
 level04@OverRide:/tmp$ gcc -m32 getenv.c 
 
+# THE ADRESS OF OUT SHELLCODE VARY SO THE CALCULUS ON THIS WALKTHROUGH ARE INACCURATE
+# THESE VALUE ARE USED AS AN EXEMPLE
+
 # So we need 080497e0 R_386_JUMP_SLOT   exit < 0x080497e0 and a shellcode adrress (level04) < 0xffffd884 --> our shellcode is stored in ENV as in level04
 
 # Now we need to build our exploit
