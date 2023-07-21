@@ -26,6 +26,9 @@ it won't work if use like that
 # one method whe can use is to spilt in 2 our address and write 2 bits by 2 bits, so now if we convert our adress 0xffff = 65535 | d884 = 55299
 Now we have 2 value to write 55299 and 65535-55299 = 10236, we need addr_exit and addr_exit+2, so 2+2=4
 
+# Since we need to write the adress in little endian, we will start by 55299 so to complete our adress we need to calculate the complement in order to attain the good adress
+So how do you get to 65535 after having write 55299 char, you write 65535-55299 = 10236
+
 
 # Now we need to build our exploit again
 [adrr_exit][adrr_exit+2][%adrrs_sh%10\$hn][%ellcoded%11\$hn] #n become hn (we use short)
