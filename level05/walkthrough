@@ -28,7 +28,7 @@ level04@OverRide:/tmp$ gcc -m32 getenv.c
 [adrr_exit][%adrrs_shellcoded%10$n]
 
 
-# BUT BUT BUT BUT As we can see, the format we use is %d witch take an int, if whe convert 0xffffd884 --> adress of exit in got, to int = 4294957188 and this value is > int_max, so
+# BUT BUT BUT BUT As we can see, the format we use is %d witch take an int, if whe convert 0xffffd884 --> adress of our shellcode, to int = 4294957188 and this value is > int_max, so
 it won't work if use like that
 
 # one method whe can use is to spilt in 2 our address and write 2 bits by 2 bits, so now if we convert our adress 0xffff = 65535 | d884 = 55299
