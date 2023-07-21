@@ -1,15 +1,15 @@
-undefined4 auth(char *src,uint param_2)
+undefined4 auth(char *login,uint serial)
 
 {
   size_t len;
   undefined4 ret;
   long temperimg_var;
   int i;
-  uint xor_value;
+  uint hashed_login;
   
-  len = strcspn(src,"\n");
-  src[len] = '\0';
-  len = strnlen(src,0x20);
+  len = strcspn(login,"\n");
+  login[len] = '\0';
+  len = strnlen(login,0x20);
   if ((int)len < 6) {
     ret = 1;
   }
@@ -22,14 +22,14 @@ undefined4 auth(char *src,uint param_2)
       ret = 1;
     }
     else {
-      xor_value = ((int)src[3] ^ 0x1337U) + 0x5eeded;
+      hashed_login = ((int)login[3] ^ 0x1337U) + 0x5eeded;
       for (i = 0; i < (int)len; i = i + 1) {
-        if (src[i] < ' ') {
+        if (login[i] < ' ') {
           return 1;
         }
-        xor_value = xor_value + ((int)src[i] ^ xor_value) % 0x539;
+        hashed_login = hashed_login + ((int)login[i] ^ hashed_login) % 0x539;
       }
-      if (param_2 == xor_value) {
+      if (serial == hashed_login) {
         ret = 0;
       }
       else {
@@ -45,8 +45,8 @@ bool main(int ac,char **av)
 {
   int ret;
   int in_GS_OFFSET;
-  uint i;
-  char buff [32];
+  uint serial;
+  char login [32];
   int local_14;
   
   local_14 = *(int *)(in_GS_OFFSET + 20);
@@ -54,13 +54,13 @@ bool main(int ac,char **av)
   puts("*\t\tlevel06\t\t  *");
   puts("***********************************");
   printf("-> Enter Login: ");
-  fgets(buff,32,stdin);
+  fgets(login,32,stdin);
   puts("***********************************");
   puts("***** NEW ACCOUNT DETECTED ********");
   puts("***********************************");
   printf("-> Enter Serial: ");
-  __isoc99_scanf();
-  ret = auth(buff,i);
+  serial = __isoc99_scanf();
+  ret = auth(login,serial);
   if (ret == 0) {
     puts("Authenticated!");
     system("/bin/sh");
