@@ -85,18 +85,13 @@ GbcPDRgsFK77LNnnuh7QyFYA2942Gp8yKj9KrWD8 --> BINGO
 
 OR we can just rewrite the auth function and generate serial on our side
 
-def get_serial(login):
-    serial = (ord(login[3]) ^ 0x1337) + 0x5eeded
-    for letter in login:
-        if letter < ' ':
-            break
-        serial = serial + (ord(letter) ^ serial) % 1337
-    return serial
+login = "ABCDEF"
+serial = (ord(login[3]) ^ 0x1337) + 0x5eeded
+for c in login:
+    if c < ' ': break
+    serial = serial + (ord(c) ^ serial) % 1337
+print(f"Serial for login :'{login}' is : {serial}")
 
-if __name__ == '__main__':
-    print("Serial : ", get_serial("ABCDEF"))
-
-python reverse_xor.py
-Serial :  6231554
+Serial for login :'ABCDEF' is : 6231554
 
 Tada.
