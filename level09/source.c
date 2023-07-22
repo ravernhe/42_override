@@ -49,6 +49,7 @@ void set_msg(char *param_1)
 
 void handle_msg(void)
 {
+  // when you read the asm, you understand this is a sturct cause all adress are following each other
   undefined local_c8 [140];
   undefined8 local_3c;
   undefined8 local_34;
