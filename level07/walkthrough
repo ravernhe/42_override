@@ -1,3 +1,7 @@
+RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
+Partial RELRO   Canary found      NX disabled   No PIE          No RPATH   No RUNPATH   /home/users/level07/level07
+
+
 level07@OverRide:~$ objdump -R level07
 
 level07:     file format elf32-i386
